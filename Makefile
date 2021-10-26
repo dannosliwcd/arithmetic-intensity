@@ -50,7 +50,7 @@ GEOPM_INC_DIR = ${HOME}/build/geopm/include
 
 CXXFLAGS = -std=c++11 -g -O2 -xHost
 ifndef NOGEOPM
-    LDLIBS += -L$(GEOPM_LIB_DIR) -lgeopm
+    LDLIBS += -L$(GEOPM_LIB_DIR) -lgeopm -lgeopmd
     CPPFLAGS += -I$(GEOPM_INC_DIR)
     GEOPM_H_DEPENDENCY = geopm_empty.h
 else
