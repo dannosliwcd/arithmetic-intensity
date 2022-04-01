@@ -66,7 +66,8 @@
 #ifdef NOGEOPM
 #include "geopm_empty.h"
 #else
-#include "geopm.h"
+#include "geopm_prof.h"
+#include "geopm_hint.h"
 #include "geopm_error.h"
 #endif
 
