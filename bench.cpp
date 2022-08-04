@@ -180,10 +180,8 @@ static void time_bench(const std::string &bench_name, const BenchmarkConfig &con
                        const AlignedBuffer &data, size_t array_length_per_rank,
                        size_t fmas_per_load, Logger &logger)
 {
-    double aggregated_wall_time = 0;
-    double aggregated_exec_time = 0;
     const size_t slow_rank_internal_iterations = config.base_internal_iterations * config.imbalance_multiplier;
-    const size_t internal_iterations = (rank < config.slow_rank_count)
+    const size_t internal_iterations = ((rank % config.ranks_per_imbalanced_group) < config.slow_ranks_per_group)
                                      ? slow_rank_internal_iterations
                                      : config.base_internal_iterations;
     uint64_t region_id = 0;
@@ -228,10 +226,12 @@ static void time_bench(const std::string &bench_name, const BenchmarkConfig &con
     std::chrono::duration<double> diff = std::chrono::high_resolution_clock::now() - start;
     double wall_time = diff.count();
 
+    const auto imbalanced_group_count = rank_count / config.ranks_per_imbalanced_group;
+    const auto total_slow_ranks = config.slow_ranks_per_group * imbalanced_group_count;
     const double total_iterations =
         config.iteration_count *               // external loops
-        ((rank_count - config.slow_rank_count) * config.base_internal_iterations + // regular rank internal loops
-         config.slow_rank_count * slow_rank_internal_iterations); // slow rank internal loops
+        ((rank_count - total_slow_ranks) * config.base_internal_iterations + // regular rank internal loops
+         total_slow_ranks * slow_rank_internal_iterations); // slow rank internal loops
     const double bytes_loaded = array_length_per_rank * sizeof(Precision) * total_iterations;
     const double total_ops = ops_per_byte * bytes_loaded;
     logger.stream(0)
@@ -330,8 +330,10 @@ void run_benchmarks(const BenchmarkConfig& config)
         << "Array of " << floats_per_rank << " "
         << (config.is_single_precision ? "single" : "double") << "-precision floats per rank\n"
         << "ranks: " << rank_count
-        << "\nslow ranks: " << config.slow_rank_count
-        << ", slowdown factor: " << config.imbalance_multiplier << std::endl;
+        << "\nslow ranks per imbalance group: " << config.slow_ranks_per_group
+        << ", slowdown factor: " << config.imbalance_multiplier
+        << "\ntotal ranks per imbalanced group: " << config.ranks_per_imbalanced_group
+        << std::endl;
 
     if (config.is_single_precision) {
         for (size_t bench_size : config.enabled_fmas_per_load) {

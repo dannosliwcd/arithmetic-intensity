@@ -57,7 +57,8 @@
 
 struct BenchmarkConfig final
 {
-    size_t slow_rank_count;
+    int slow_ranks_per_group;
+    int ranks_per_imbalanced_group;
     size_t base_internal_iterations;
     double imbalance_multiplier;
     size_t floats_per_rank;

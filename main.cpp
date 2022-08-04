@@ -70,10 +70,26 @@ int main(int argc, char **argv)
                    "perform.",
                    true);
 
-    size_t slow_rank_count = 0;
-    app.add_option("--slow-ranks", slow_rank_count,
-                   "The number of ranks to run with extra work for an imbalanced load.",
-                   true);
+    int slow_ranks = 0;
+    auto slow_ranks_option =
+        app.add_option("--slow-ranks", slow_ranks,
+                       "The total number of ranks to run with extra work for an imbalanced load.",
+                       true);
+
+    int slow_ranks_per_imbalanced_group = 0;
+    app.add_option("--slow-ranks-per-imbalanced-group", slow_ranks_per_imbalanced_group,
+                   "The number of ranks to run with extra work within each "
+                   "imbalanced group of ranks when --slowdown is used.",
+                   true)->excludes(slow_ranks_option);
+
+    int ranks_per_imbalanced_group = 0;
+    app.add_option("--ranks-per-imbalanced-group", ranks_per_imbalanced_group,
+                   "Total number of ranks in each imbalanced group of ranks."
+                   "When --slowdown is used, the first --slow-ranks count of "
+                   "ranks within each group of --ranks-per-imbalanced-group "
+                   "will receive extra work. Default: All ranks are in a "
+                   "single group.",
+                   false);
 
     size_t floats = 1024 * 1024 * 64;
     app.add_option("--floats", floats,
@@ -107,6 +123,9 @@ int main(int argc, char **argv)
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
+    int total_rank_count;
+    MPI_Comm_size(MPI_COMM_WORLD, &total_rank_count);
+
     try {
         app.parse(argc, argv);
     }
@@ -118,6 +137,17 @@ int main(int argc, char **argv)
         else {
             return 0;
         }
+    }
+
+    if (ranks_per_imbalanced_group == 0) {
+        ranks_per_imbalanced_group = total_rank_count;
+    }
+
+    if (slow_ranks_option->count() != 0) {
+        // User requested total count of slow ranks. Convert to ranks per
+        // imbalanced group.
+        const auto imbalanced_group_count = total_rank_count / ranks_per_imbalanced_group;
+        slow_ranks_per_imbalanced_group = slow_ranks / imbalanced_group_count;
     }
 
     auto all_benchmarks = get_benchmarks(*is_single_precision);
@@ -157,7 +187,8 @@ int main(int argc, char **argv)
         }
     }
 
-    run_benchmarks({ slow_rank_count, base_internal_iterations, imbalance_multiplier, floats,
+    run_benchmarks({ slow_ranks_per_imbalanced_group, ranks_per_imbalanced_group,
+                     base_internal_iterations, imbalance_multiplier, floats,
                      verbosity->count(), *is_single_precision, iteration_count,
                      enabled_benchmarks, start_time });
 
