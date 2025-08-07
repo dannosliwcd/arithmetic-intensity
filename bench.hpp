@@ -54,6 +54,7 @@
 #include <cstddef>
 #include <vector>
 #include <iostream>
+#include <cstdint>
 
 struct BenchmarkConfig final
 {
