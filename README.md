@@ -2,9 +2,13 @@ This is a synthetic benchmark that runs at varied levels of arithmetic
 intensity.
 
 # Building
-    Run `make` to build the program.
 
-    Run `make NOGEOPM=1` to build the program with no GEOPM dependencies.
+    With GEOPM (ref: https://geopm.github.io/) dependencies
+    - First set the environment variable GEOPM_INSTALL to point to an existing GEOPM installation
+    - Run `make` to build the program
+
+    With no GEOPM dependencies
+    - Run `make NOGEOPM=1` to build the program.
 
 # Running
 
